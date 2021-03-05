@@ -12,6 +12,25 @@ use Illuminate\Http\Request;
 | is assigned the "api" middleware group. Enjoy building your API!
 |
 */
+Route::get('/rocketshipit-test', function () {
+    $rs = new \RocketShipIt\RocketShipIt();
+    $rs->apiKey = 'YOUR RocketShipIt API KEY HERE';
+    $response = $rs->request(
+    array(
+      'carrier' => 'UPS',
+      'action' => 'Track',
+      'params' => 
+      array(
+        'username' => 'YOUR UPS USERNAME',
+        'password' => 'YOUR UPS PASSWORD',
+        'key' => 'YOUR UPS API KEY',
+        'tracking_number' => '1Z12345E0205271688', // this is a test tracking number
+        'test' => true // set to false to use production UPS servers
+      ),
+    ));
+    echo '<pre>'. print_r($response, true). '</pre>';
+});
+Route::get('/calculateDeliveryCharge','Api\v1\ApiController@calculateDeliveryCharge')->name('api.calculateDeliveryCharge');
 Route::post('/OrderDetails','Api\v1\ApiController@OrderDetails')->name('api.OrderDetails');
 Route::post('/CartDesc','Api\v1\ApiController@CartDesc')->name('api.CartDesc');
 Route::any('/webhook/order-tracking', 'Api\v1\ApiController@webHookStatus');
