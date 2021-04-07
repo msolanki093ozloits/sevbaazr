@@ -1732,7 +1732,7 @@ class ApiController extends Controller
         }
     }
 
-    public function getShiprocket(Request $request)
+    public function getCheckServiceability(Request $request)
     {
         try
         {
@@ -1745,9 +1745,12 @@ class ApiController extends Controller
             $response = Shiprocket::courier($token)->checkServiceability($pincodeDetails);
             $data = json_decode($response);
             if($data->status == 200) {
-                return response()->json(['Status' => '1', 'message' => 'successful', 'data' => $response]);
+                return response()->json(['Status' => '1', 'message' => 'Available ']);
             }
-            return response()->json(['Status' => '0', 'message' => 'successful']);
+            else
+            {
+                return response()->json(['Status' => '0', 'message' => 'Not Available ']);
+            }
         }
         catch(Exception $e)
         {
@@ -1760,37 +1763,38 @@ class ApiController extends Controller
     {
         $order_id = $request->get('order_id');
         //dd($webhook->current_status);
-        $order_info = Order::where('ord_id', $order_id)->with(['address:address_id,pincode,first_name,phone,city,State,landmark,address,set_def,last_name', 'user:id,name,email,Phone', 'product' => function ($q)
-        {
-            $q->select(['cart_id', 'order_id', 'product_id', 'Unit', 'price', 'dis_price', 'qty', 'product_weight', 'total_amt'])
-                ->with('product:product_id,vender_id,product_catgory,product_test,product_ingredients,product_title');
+        $order_info = Order::where('ord_id', $order_id)
+                            ->with(['address:address_id,pincode,first_name,phone,city,State,landmark,address,set_def,last_name', 'user:id,name,email,Phone', 'product' => function ($q) {
+                                    $q->select(['cart_id', 'order_id', 'product_id', 'Unit', 'price', 'dis_price', 'qty', 'product_weight', 'total_amt'])
+                                        ->with('product:product_id,vender_id,product_catgory,product_test,product_ingredients,product_title');
+                                    }
+                            ])
+                            ->first();
+        if(!empty($order_info)) {
+            //dd($order_info->toArray());
+            $data = ['order_id' => $order_info->ord_id, 'order_date' => date('Y-m-d H:i:s', strtotime($order_info->created_at)) , 'pickup_location' => $order_info
+                ->address->city, ];
+            $token = Shiprocket::getToken();
+
+            $sampleOrder = $this->sampleOrder($order_info);
+            $order = Shiprocket::order($token)->create($sampleOrder);
+            if ($order)
+            {
+                $shipment_id = $order['shipment_id'];
+                //dd($pickupDetails);
+                $pickupDetails = ["shipment_id" => $shipment_id];
+                $param = ['shipment_id' => $shipment_id, ];
+                $awb = Shiprocket::courier($token)->generateAWB($param);
+                $pickup_request = Shiprocket::courier($token)->requestPickup($pickupDetails);
+
+                $update_order = ['ship_rocket_order_id' => $shipment_id, 'order_status' => 6, 'updated_at' => date('Y-m-d H:i:s') ];
+                Order::where('ord_id', $order_id)->update($update_order);
+
+                return response()->json(['success' => '1', 'message' => 'successful', 'data' => $order, 'awb' => $awb, 'pickup_request' => $pickup_request]);
+            }
+            return response()->json(['success' => '0', 'message' => 'successful']);
         }
-        ])
-            ->first();
-
-        //dd($order_info->toArray());
-        $data = ['order_id' => $order_info->ord_id, 'order_date' => date('Y-m-d H:i:s', strtotime($order_info->created_at)) , 'pickup_location' => $order_info
-            ->address->city, ];
-        $token = Shiprocket::getToken();
-
-        $sampleOrder = $this->sampleOrder($order_info);
-        $order = Shiprocket::order($token)->create($sampleOrder);
-        //dd($order);
-        if ($order)
-        {
-            $shipment_id = $order['shipment_id'];
-            //dd($pickupDetails);
-            $pickupDetails = ["shipment_id" => $shipment_id];
-            $param = ['shipment_id' => $shipment_id, ];
-            $awb = Shiprocket::courier($token)->generateAWB($param);
-            $pickup_request = Shiprocket::courier($token)->requestPickup($pickupDetails);
-
-            $update_order = ['ship_rocket_order_id' => $shipment_id, 'order_status' => 6, 'updated_at' => date('Y-m-d H:i:s') ];
-            Order::where('ord_id', $order_id)->update($update_order);
-
-            return response()->json(['success' => '1', 'message' => 'successful', 'data' => $order, 'awb' => $awb, 'pickup_request' => $pickup_request]);
-        }
-        return response()->json(['success' => '0', 'message' => 'successful']);
+        return response()->json(['success' => '0', 'message' => 'Order id does not exists']);
     }
 
     public function sampleOrder($order_info)
@@ -1813,7 +1817,7 @@ class ApiController extends Controller
         //dd($order_info);
         return [
                 "order_id" => $order_info->ord_id,
-                "order_date" => $order_info->created_at,
+                "order_date" => date('Y-m-d', strtotime($order_info->created_at)),
                 "pickup_location" => "Primary",
                 "channel_id" => "",
                 "comment" => "",
@@ -1825,7 +1829,7 @@ class ApiController extends Controller
                 "billing_pincode" => $order_info->address->pincode,
                 "billing_state" => $order_info->address->State,
                 "billing_country" => "India",
-                "billing_email" => $order_info->user->email,
+                "billing_email" => $order_info->user['email'] != Null ? $order_info->user['email'] : 'msolanki093.ozloits@gmail.com',
                 "billing_phone" => $order_info->address->phone,
                 "shipping_is_billing" => true,
                 "shipping_customer_name" => $order_info->address->first_name,
@@ -1836,7 +1840,7 @@ class ApiController extends Controller
                 "shipping_pincode" => $order_info->address->pincode,
                 "shipping_country" => "India",
                 "shipping_state" => $order_info->address->State,
-                "shipping_email" => $order_info->user->email,
+                "shipping_email" => $order_info->user['email'] != Null ? $order_info->user['email'] : 'msolanki093.ozloits@gmail.com',
                 "shipping_phone" => $order_info->address->phone,
                 "payment_method" => "COD",
                 "shipping_charges" => 0,
@@ -1847,13 +1851,20 @@ class ApiController extends Controller
                 "length" => 10,
                 "breadth" => 15,
                 "height" => 20,
-                "weight" => $product_weight,
+                "weight" => $product_weight / 1000,
                 'order_items' => $order_items
             ];
     }
 
     public function webHookStatus(Request $request)
     {
+        //dd($request);
+        DB::table('tests')->insert([
+            'json' => $request,
+            'json1' => $request->all(),
+            'json2' => json_decode($request->all()),
+            'json3' => json_decode($request->getContent(), true),
+        ]);
         if ($request->current_status == "Delivered")
         {
             Order::where('ord_id', $request->order_id)
@@ -1879,6 +1890,11 @@ class ApiController extends Controller
         {
             Order::where('ord_id', $request->order_id)
                 ->update(['order_status' => 6]);
+            return response()
+                ->json(['success' => '1', 'message' => 'successful', 'updated_status' => $request->current_status]);
+        } else {
+            Order::where('ord_id', $request->order_id)
+                ->update(['order_status' => 7]);
             return response()
                 ->json(['success' => '1', 'message' => 'successful', 'updated_status' => $request->current_status]);
         }

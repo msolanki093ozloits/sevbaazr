@@ -95,7 +95,7 @@
                                                     <td class="text-right">
                 <a href="#" class="btn btn-link btn-info btn-just-icon visibility" data-toggle="modal" data-target="#noticeModalcomment" rel="tooltip" data-placement="bottom" title="View" onclick="viewDis({{ $pr->order_id}})"><i class="material-icons">art_track</i></a>
                 @if($adresid['order_status'] == 1)
-                  <a href="javascript:void(0);" class="btn btn-link btn-info btn-just-icon yes" title="Shiprocket" onclick="shipRocket({{ $pr->order_id}});"><i class="material-icons">comment</i></a>
+                  <a href="javascript:void(0);" class="btn btn-link btn-info btn-just-icon yes" title="Ready for ship" onclick="shipRocket({{ $pr->order_id}});"><i class="material-icons">local_shipping</i></a>
                 @endif
 
                 
@@ -414,8 +414,8 @@ function shipRocket(id)
 {
 
   swal({
-      title: "Shiprocket",
-      text: "Send request to delivery partner",
+      title: "Deliery",
+      text: "Ready for delivery",
       icon: 'warning',
       buttons: [
         "No, cancel it!",

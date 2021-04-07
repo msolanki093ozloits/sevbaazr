@@ -35,7 +35,7 @@ Route::post('/OrderDetails','Api\v1\ApiController@OrderDetails')->name('api.Orde
 Route::post('/CartDesc','Api\v1\ApiController@CartDesc')->name('api.CartDesc');
 Route::any('/webhook/order-tracking', 'Api\v1\ApiController@webHookStatus');
 
-Route::post('/v1/ship-rocket','Api\v1\ApiController@getShiprocket');
+//Route::post('/v1/check-service-ability','Api\v1\ApiController@getCheckServiceability');
 Route::post('/v1/send-request-ship-rocket','Api\v1\ApiController@canAbleToGetThePickupLocations');
 //Route::post('/v1/shiprocket','Api\v1\ApiController@getShiprocket');
 Route::middleware('auth:api')->prefix('v1')->group(function(){
