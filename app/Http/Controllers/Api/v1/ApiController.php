@@ -1738,8 +1738,14 @@ class ApiController extends Controller
         {
             $token = Shiprocket::getToken(); //  if you added credentials at shiprocket.php config
             //dd($token);
-            $pincodeDetails = ['pickup_postcode' => $request->get('pickup_postcode') , 'delivery_postcode' => $request->get('delivery_postcode') , 'cod' => $request->get('cod') , 'weight' => $request->get('weight') ,
-            //'order_id'            => $request->get('order_id'),
+            //$user_id = 53;
+
+            //$user_info = Carts::where('user_id', $user_id)->first();
+            $pincodeDetails = [
+                                'pickup_postcode'   => $request->get('Pincode'),
+                                'delivery_postcode' => '452001',
+                                'cod'               => false,
+                                'weight'            => '2.5' ,
             ];
             //dd($pincodeDetails);
             $response = Shiprocket::courier($token)->checkServiceability($pincodeDetails);
@@ -1858,45 +1864,44 @@ class ApiController extends Controller
 
     public function webHookStatus(Request $request)
     {
-        //dd($request);
-        DB::table('tests')->insert([
-            'json' => $request,
-            'json1' => $request->all(),
-            'json2' => json_decode($request->all()),
-            'json3' => json_decode($request->getContent(), true),
+        $data = json_decode($request->getContent(), true);
+        \DB::table('tests')->insert([
+            'json' => $request->getContent(),
+            'json1' => $data['current_status'],
         ]);
-        if ($request->current_status == "Delivered")
+        
+        if ($data['current_status'] == "Delivered")
         {
-            Order::where('ord_id', $request->order_id)
+            Order::where('ord_id', $data['order_id'])
                 ->update(['order_status' => 2]);
             return response()
-                ->json(['success' => '1', 'message' => 'successful', 'updated_status' => $request->current_status]);
+                ->json(['success' => '1', 'message' => 'successful', 'updated_status' => $data['current_status']]);
         }
-        elseif ($request->current_status == "OutForDelivery")
+        elseif ($data['current_status'] == "OutForDelivery")
         {
-            Order::where('ord_id', $request->order_id)
+            Order::where('ord_id', $data['order_id'])
                 ->update(['order_status' => 4]);
             return response()
-                ->json(['success' => '1', 'message' => 'successful', 'updated_status' => $request->current_status]);
+                ->json(['success' => '1', 'message' => 'successful', 'updated_status' => $data['current_status']]);
         }
-        elseif ($request->current_status == "ReturnToSender")
+        elseif ($data['current_status'] == "ReturnToSender")
         {
-            Order::where('ord_id', $request->order_id)
+            Order::where('ord_id', $data['order_id'])
                 ->update(['order_status' => 5]);
             return response()
-                ->json(['success' => '1', 'message' => 'successful', 'updated_status' => $request->current_status]);
+                ->json(['success' => '1', 'message' => 'successful', 'updated_status' => $data['current_status']]);
         }
-        elseif ($request->current_status == "Acceptance")
+        elseif ($data['current_status'] == "Acceptance")
         {
-            Order::where('ord_id', $request->order_id)
+            Order::where('ord_id', $data['order_id'])
                 ->update(['order_status' => 6]);
             return response()
-                ->json(['success' => '1', 'message' => 'successful', 'updated_status' => $request->current_status]);
+                ->json(['success' => '1', 'message' => 'successful', 'updated_status' => $data['current_status']]);
         } else {
-            Order::where('ord_id', $request->order_id)
+            Order::where('ord_id', $data['order_id'])
                 ->update(['order_status' => 7]);
             return response()
-                ->json(['success' => '1', 'message' => 'successful', 'updated_status' => $request->current_status]);
+                ->json(['success' => '1', 'message' => 'successful', 'updated_status' => $data['current_status']]);
         }
     }
 
