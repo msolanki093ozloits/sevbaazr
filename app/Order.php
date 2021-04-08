@@ -42,5 +42,8 @@ class Order extends Model
         elseif($value == 5){
             return 'Return';
         }
+        elseif($value == 6){
+            return 'Accept';
+        }
     }
 }

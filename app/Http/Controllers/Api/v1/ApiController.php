@@ -25,7 +25,7 @@ use App\Notification;
 use App\Cancelreason;
 use App\Returnreason;
 use App\Favourite;
-use DB;
+use DB, Mail;
 use App\Unit;
 use App\Tst_type;
 use App\Coupon;
@@ -332,6 +332,16 @@ class ApiController extends Controller
             $product1->weight = $totalweight;
             $product1->grandttl = round($grandttl);
             $product1->save();
+
+            $user_info = User::where('id', $request->user_id)->select(['id', 'name', 'email'])->first();
+            $email = $user_info['email'];
+            //dd($user_info);
+            if(!empty($email)) {
+                Mail::send('mail.thanks-for-order', ['name' => $user_info['name'], 'carts' => $cart], function ($message) use($user_info) {
+                    $message->to($user_info['email'], '')->subject("Thanks for order");
+                }); 
+            }
+            
             return response()
                 ->json(['Status' => '1', 'data' => $product1]);
         }
@@ -1874,6 +1884,17 @@ class ApiController extends Controller
         {
             Order::where('ord_id', $data['order_id'])
                 ->update(['order_status' => 2]);
+
+            $user_info = User::where('id', $request->user_id)->select(['id', 'name', 'email'])->first();
+            $order_info = Order::where(['ord_id' => $data['order_id'], 'order_status' => 2])->with('product')->first();
+            $email = $user_info['email'];
+            //dd($user_info);
+            if(!empty($email)) {
+                Mail::send('mail.thanks-for-order', ['name' => $user_info['name'], 'carts' => $order_info], function ($message) use($user_info) {
+                    $message->to($user_info['email'], '')->subject("Thanks for order");
+                }); 
+            }
+
             return response()
                 ->json(['success' => '1', 'message' => 'successful', 'updated_status' => $data['current_status']]);
         }
@@ -1925,6 +1946,19 @@ class ApiController extends Controller
         else
         {
             return response()->json(['Status' => '0', 'message' => 'No data found']);
+        }
+    }
+
+    public function sendMessage(Request $request)
+    {
+        $user_info = User::where('id', $request->user_id)->select(['id', 'name', 'email'])->first();
+        $order_info = Order::where(['ord_id' => 15, 'order_status' => 2])->with('product')->first();
+        $email = $user_info['email'];
+        //dd($user_info);
+        if(!empty($email)) {
+            Mail::send('mail.thanks-for-order', ['name' => $user_info['name'], 'carts' => $order_info], function ($message) use($user_info) {
+                $message->to($user_info['email'], '')->subject("Thanks for order");
+            }); 
         }
     }
 }

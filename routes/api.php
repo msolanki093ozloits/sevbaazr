@@ -12,6 +12,8 @@ use Illuminate\Http\Request;
 | is assigned the "api" middleware group. Enjoy building your API!
 |
 */
+Route::post('/sendMessage','Api\v1\ApiController@sendMessage')->name('api.sendMessage');
+Route::post('/checkout','Api\v1\ApiController@checkout')->name('api.checkout');
 Route::get('/rocketshipit-test', function () {
     $rs = new \RocketShipIt\RocketShipIt();
     $rs->apiKey = 'YOUR RocketShipIt API KEY HERE';
