@@ -1794,7 +1794,7 @@ class ApiController extends Controller
 
             $sampleOrder = $this->sampleOrder($order_info);
             $order = Shiprocket::order($token)->create($sampleOrder);
-            if ($order)
+            if ($order['status'] = "NEW")
             {
                 $shipment_id = $order['shipment_id'];
                 //dd($pickupDetails);
@@ -1959,6 +1959,53 @@ class ApiController extends Controller
             Mail::send('mail.thanks-for-order', ['name' => $user_info['name'], 'carts' => $order_info], function ($message) use($user_info) {
                 $message->to($user_info['email'], '')->subject("Thanks for order");
             }); 
+        }
+    }
+
+    public function generateLabel(Request $request)
+    {
+        try
+        {
+            $token = Shiprocket::getToken(); //  if you added credentials at shiprocket.php config
+            $shipmentIds = [ 'shipment_id' => [$request->get('shipment_id')] ];
+            $response = Shiprocket::generate($token)->label($shipmentIds);
+            $data = json_decode($response);
+            //dd($data);
+            if($data->label_created == 1) {
+                return response()->json(['Status' => '1', 'message' => 'Available ', 'data' => $data]);
+            }
+            else
+            {
+                return response()->json(['Status' => '0', 'message' => 'Not Available ']);
+            }
+        }
+        catch(Exception $e)
+        {
+            throw $e;
+        }
+    }
+
+    public function generateInvoice(Request $request)
+    {
+        try
+        {
+            $token = Shiprocket::getToken(); //  if you added credentials at shiprocket.php config
+            //$orderIds = [ 'shipment_id' => [$request->get('shipment_id')] ];
+            $orderIds = [ 'ids' => [17] ];
+            $response = Shiprocket::generate($token)->invoice($orderIds);
+            $data = json_decode($response);
+            dd($data);
+            if($data->label_created == 1) {
+                return response()->json(['Status' => '1', 'message' => 'Available ', 'data' => $data]);
+            }
+            else
+            {
+                return response()->json(['Status' => '0', 'message' => 'Not Available ']);
+            }
+        }
+        catch(Exception $e)
+        {
+            throw $e;
         }
     }
 }

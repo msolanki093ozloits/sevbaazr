@@ -11,6 +11,12 @@
                             
                             
 <!--                    @stop                -->
+
+<style type="text/css">
+  .disable_a_href{
+    pointer-events: none;
+}
+</style>
 @section('maincontent')
 <meta name="csrf-token" content="{{ csrf_token() }}" />
 <div class="content">
@@ -96,6 +102,10 @@
                 <a href="#" class="btn btn-link btn-info btn-just-icon visibility" data-toggle="modal" data-target="#noticeModalcomment" rel="tooltip" data-placement="bottom" title="View" onclick="viewDis({{ $pr->order_id}})"><i class="material-icons">art_track</i></a>
                 @if($adresid['order_status'] == 1)
                   <a href="javascript:void(0);" class="btn btn-link btn-info btn-just-icon yes" title="Ready for ship" onclick="shipRocket({{ $pr->order_id}});"><i class="material-icons">local_shipping</i></a>
+                @endif
+
+                @if($adresid['order_status'] != 1)
+                  <a href="javascript:void(0);" id="label-generate" class="btn btn-link btn-info btn-just-icon yes" title="Label Generate" onclick="labelGenerate({{ $adresid->ship_rocket_order_id}});"><i class="material-icons">receipt</i></a>
                 @endif
 
                 
@@ -454,6 +464,24 @@ function shipRocket(id)
         location.reload();
       }
     });
+}
+
+function labelGenerate(id)
+{
+  $.ajax({
+    url: "/api/v1/generate-label",
+    data:{shipment_id:id,_token: $('meta[name="csrf-token"]').attr('content') },
+    method:'post',
+    datatype: 'json',             
+    success:function(res){
+      if(res.Status == 1){
+        console.log(res.data.label_url);
+        window.open(res.data.label_url, "_blank");
+      } else {
+        alert("Label not available.")
+      }
+    }
+  });
 }
 
     </script>
