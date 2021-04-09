@@ -41,6 +41,7 @@ Route::post('/v1/check-service-ability','Api\v1\ApiController@getCheckServiceabi
 Route::post('/v1/send-request-ship-rocket','Api\v1\ApiController@canAbleToGetThePickupLocations');
 Route::post('/v1/generate-label','Api\v1\ApiController@generateLabel');
 Route::post('/v1/generate-invoice','Api\v1\ApiController@generateInvoice');
+Route::post('/v1/test','Api\v1\ApiController@test');
 //Route::post('/v1/shiprocket','Api\v1\ApiController@getShiprocket');
 Route::middleware('auth:api')->prefix('v1')->group(function(){
 

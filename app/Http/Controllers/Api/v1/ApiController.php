@@ -1316,6 +1316,7 @@ class ApiController extends Controller
             // $totalweight=Carts::where(['user_id'=>$request->user_id,'payment_order'=>0])->sum('product_weight');
             $newarry = array();
             $totalamount = 0;
+            $product_weight = 0;
             foreach ($user as $itm)
             {
                 $productdetails = Product::where('product_id', '=', $itm['product_id'])->first();
@@ -1355,6 +1356,7 @@ class ApiController extends Controller
             $shiping_amt = 0;
             $ttlgst = (($totalamount + $shiping_amt) * $gstrate['gstrate']) / 100;
             $grandttl = $totalamount + $shiping_amt + $ttlgst;
+            $product_weight = $product_weight + preg_replace('/[^0-9]/', '', $itm['product_weight']);
 
             if ($grandttl >= $gstrate['Min_order'])
             {
@@ -1364,6 +1366,9 @@ class ApiController extends Controller
             {
                 $minorderstatus = 0;
             }
+
+            $user_info = $user = Useraddress::where(['user_id' => $request->user_id, 'set_def' => 0])->first();
+            $delivery_charge = $this->getCalculateDeliverCharge($user_info, $product_weight);
             $total = array(
                 "sub_total" => round($totalamount) ,
                 "shiping_amt" => $shiping_amt,
@@ -1372,6 +1377,7 @@ class ApiController extends Controller
                 "minorderstatus" => $minorderstatus,
                 "order_min_amount" => $gstrate['Min_order'],
                 "save_amount" => 0,
+                "delivery_charge" => $delivery_charge,
             );
             return response()->json(['Status' => '1', 'data' => $newarry, 'total' => $total]);
         }
@@ -1699,9 +1705,10 @@ class ApiController extends Controller
         }
         else
         {
+            Useraddress::where(['user_id' => $request->user_id])->update(['set_def' => 1]);
+
             foreach ($vender_id as $itmven_id)
             {
-
                 Carts::where(['user_id' => $request->user_id, 'payment_order' => 0, 'order_id' => 0])
                     ->update(['address_id' => $request->address_id]);
                 Useraddress::where(['address_id' => $request
@@ -1858,7 +1865,7 @@ class ApiController extends Controller
                 "shipping_state" => $order_info->address->State,
                 "shipping_email" => $order_info->user['email'] != Null ? $order_info->user['email'] : 'msolanki093.ozloits@gmail.com',
                 "shipping_phone" => $order_info->address->phone,
-                "payment_method" => "COD",
+                "payment_method" => "Online",
                 "shipping_charges" => 0,
                 "giftwrap_charges" => 0,
                 "transaction_charges" => 0,
@@ -2007,6 +2014,105 @@ class ApiController extends Controller
         {
             throw $e;
         }
+    }
+
+    /*public function test(Request $request)
+    {
+        $user = Carts::where(['order_id' => 0, 'user_id' => 53])
+            ->get();
+        if (count($user) > 0)
+        {
+            $newarry = array();
+            $totalamount = 0;
+            $product_weight = 0;
+
+            foreach ($user as $itm)
+            {
+                $productdetails = Product::where('product_id', '=', $itm['product_id'])->first();
+                $categorydetails = Product_category::where('category_id', '=', $productdetails['product_catgory'])->first();
+                $unitdet = Unit::where('unit_id', '=', $itm['Unit'])->First();
+                if (!empty($productdetails['admincoupon']))
+                {
+                    $statuscoupn = 1;
+                }
+                else
+                {
+                    $statuscoupn = 0;
+                }
+                $data = array(
+                    "cart_id" => $itm['cart_id'],
+                    "product_id" => $itm['product_id'],
+                    "apply_code" => $itm['apply_code'],
+                    "coupon_price" => round($itm['coupon_price']) ,
+                    "qty" => $itm['qty'],
+                    "product_weight" => $itm['product_weight'],
+                    "total_amt" => $itm['total_amt'],
+                    "product_title" => $productdetails['product_title'],
+                    "product_catgory" => $categorydetails['caregory_name'],
+                    "product_delhiverycharge" => round($itm['product_deliverych']) ,
+                    "image" => $productdetails['main_img'],
+                    "ssave_amount" => 0,
+                    "statuscoupn" => $statuscoupn,
+                );
+                array_push($newarry, $data);
+                $totalamount = $totalamount + $itm['total_amt'];
+                $product_weight = $product_weight + preg_replace('/[^0-9]/', '', $itm['product_weight']);
+            }
+            $gstrate = Gstrate::first();
+
+            $shiping_amt = 0;
+            $ttlgst = (($totalamount + $shiping_amt) * $gstrate['gstrate']) / 100;
+            $grandttl = $totalamount + $shiping_amt + $ttlgst;
+
+            if ($grandttl >= $gstrate['Min_order'])
+            {
+                $minorderstatus = 1;
+            }
+            else
+            {
+                $minorderstatus = 0;
+            }
+
+            $user_info = $user = Useraddress::where(['user_id' => $request->user_id, 'set_def' => 0])->first();
+            $delivery_charge = $this->getCalculateDeliverCharge($user_info, $product_weight);
+            $total = array(
+                "sub_total" => round($totalamount) ,
+                "shiping_amt" => $shiping_amt,
+                "gst" => round($ttlgst) ,
+                "grand_ttl" => round($grandttl) ,
+                "minorderstatus" => $minorderstatus,
+                "order_min_amount" => $gstrate['Min_order'],
+                "save_amount" => 0,
+                "delivery_charge" => $delivery_charge,
+            );
+            return response()->json(['Status' => '1', 'data' => $newarry, 'total' => $total]);
+        }
+        else
+        {
+            return response()->json(['Status' => '0', 'message' => 'No data found']);
+        }
+    }*/
+
+    public function getCalculateDeliverCharge($user_info, $product_weight)
+    {
+        $token = Shiprocket::getToken(); //  if you added credentials at shiprocket.php config
+        $pincodeDetails = [
+                            'pickup_postcode'   => '452001',
+                            'delivery_postcode' => $user_info->pincode,
+                            'cod'               => false,
+                            'weight'            => $product_weight / 1000 ,
+        ];
+        $response = Shiprocket::courier($token)->checkServiceability($pincodeDetails);
+        $data = json_decode($response);
+        $rate = 0;
+        if($data->status == 200) {
+            foreach ($data->data->available_courier_companies as $key => $value) {
+                //dd($value);
+            }
+            $rate = $data->data->available_courier_companies[0]->rate;
+            return number_format($rate ,2);
+        }
+        return $rate;
     }
 }
 
