@@ -110,7 +110,7 @@
                                         </div>
                                         <div class="form-group">
                                             <label for="exampleEmail" class="bmd-label-floating"> Pincode *</label>
-                                            <input type="text" class="form-control" id="exampleEmail"  name="Firm_pincode" >
+                                            <input type="text" class="form-control" id="Firm_pincode"  name="Firm_pincode" maxlength="6" onkeyup="checkAvailaibility();">
                                         </div>
 
                                         
@@ -460,6 +460,32 @@
                                         </div>
                                           
                                               `);
+    }
+
+    function checkAvailaibility()
+    {
+        console.log("123");
+        var count = $('#Firm_pincode').val();
+        if(count.length == 6) {
+            console.log("Ajax Called");
+            $.ajax({
+                url: "/api/v1/check-service-ability",
+                data:{order_id:id,_token: $('meta[name="csrf-token"]').attr('content') },
+                method:'post',
+                datatype: 'json',             
+                success:function(res){
+                    if(res.success == 1){
+                        swal({
+                            title: "Success!",
+                            text: "request send successfully.",
+                            icon: "success",
+                            button: "Ok"
+                        });
+                        location.reload();
+                    }
+                }
+            });
+        }
     }
 </script>
 @stop

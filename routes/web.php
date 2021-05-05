@@ -23,7 +23,7 @@ Route::any('webhook/order-tracking', function() {
 
 Route::get('/clear-cache', function() {
 	//dd(bcrypt('123456'));
-    Artisan::call('storage:link');
+    //Artisan::call('storage:link');
     Artisan::call('route:clear');
     Artisan::call('view:clear');
     Artisan::call('cache:clear');

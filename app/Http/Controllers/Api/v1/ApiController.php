@@ -1368,7 +1368,8 @@ class ApiController extends Controller
             }
 
             $user_info = $user = Useraddress::where(['user_id' => $request->user_id, 'set_def' => 0])->first();
-            $delivery_charge = $this->getCalculateDeliverCharge($user_info, $product_weight);
+            $user_id = $request->user_id;
+            $delivery_charge = $this->getCalculateDeliverCharge($user_info, $product_weight, $user_id);
             $total = array(
                 "sub_total" => round($totalamount) ,
                 "shiping_amt" => $shiping_amt,
@@ -1759,8 +1760,8 @@ class ApiController extends Controller
 
             //$user_info = Carts::where('user_id', $user_id)->first();
             $pincodeDetails = [
-                                'pickup_postcode'   => $request->get('Pincode'),
-                                'delivery_postcode' => '452001',
+                                'pickup_postcode'   => '452001',
+                                'delivery_postcode' => $request->get('Pincode'),
                                 'cod'               => false,
                                 'weight'            => '2.5' ,
             ];
@@ -2074,7 +2075,8 @@ class ApiController extends Controller
             }
 
             $user_info = $user = Useraddress::where(['user_id' => $request->user_id, 'set_def' => 0])->first();
-            $delivery_charge = $this->getCalculateDeliverCharge($user_info, $product_weight);
+            $user_id = 53;
+            $delivery_charge = $this->getCalculateDeliverCharge($user_info, $product_weight, $user_id);
             $total = array(
                 "sub_total" => round($totalamount) ,
                 "shiping_amt" => $shiping_amt,
@@ -2093,26 +2095,30 @@ class ApiController extends Controller
         }
     }*/
 
-    public function getCalculateDeliverCharge($user_info, $product_weight)
+    public function getCalculateDeliverCharge($user_info, $product_weight, $user_id)
     {
-        $token = Shiprocket::getToken(); //  if you added credentials at shiprocket.php config
-        $pincodeDetails = [
-                            'pickup_postcode'   => '452001',
-                            'delivery_postcode' => $user_info->pincode,
-                            'cod'               => false,
-                            'weight'            => $product_weight / 1000 ,
-        ];
-        $response = Shiprocket::courier($token)->checkServiceability($pincodeDetails);
-        $data = json_decode($response);
         $rate = 0;
-        if($data->status == 200) {
-            foreach ($data->data->available_courier_companies as $key => $value) {
-                //dd($value);
+        $cart_info = Carts::where(['order_id' => 0, 'user_id' => $user_id])->select('vender_id')->distinct()->get();
+        if(!empty($cart_info)) {
+            foreach ($cart_info as $key => $value) {
+                $vendor_info = Vendors::where('vender_id', $value->vender_id)->select(['Firm_pincode'])->first();
+                $token = Shiprocket::getToken(); //  if you added credentials at shiprocket.php config
+                $pincodeDetails = [
+                                    'pickup_postcode'   => $vendor_info->Firm_pincode,
+                                    'delivery_postcode' => $user_info->pincode,
+                                    'cod'               => false,
+                                    'weight'            => $product_weight / 1000 ,
+                ];
+
+                $response = Shiprocket::courier($token)->checkServiceability($pincodeDetails);
+                $data = json_decode($response);
+                
+                if($data->status == 200) {
+                    $rate = $rate + $data->data->available_courier_companies[0]->rate;
+                }
             }
-            $rate = $data->data->available_courier_companies[0]->rate;
-            return number_format($rate ,2);
         }
-        return $rate;
+        return number_format($rate ,2);
     }
 }
 
