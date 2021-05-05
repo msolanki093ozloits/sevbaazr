@@ -1783,6 +1783,39 @@ class ApiController extends Controller
 
     }
 
+    public function getCheckServiceabilityPickup(Request $request)
+    {
+        try
+        {
+            $token = Shiprocket::getToken(); //  if you added credentials at shiprocket.php config
+            //dd($token);
+            //$user_id = 53;
+
+            //$user_info = Carts::where('user_id', $user_id)->first();
+            $pincodeDetails = [
+                                'pickup_postcode'   => $request->get('pickup_postcode'),
+                                'delivery_postcode' => '452001',
+                                'cod'               => false,
+                                'weight'            => '2.5' ,
+            ];
+            //dd($pincodeDetails);
+            $response = Shiprocket::courier($token)->checkServiceability($pincodeDetails);
+            $data = json_decode($response);
+            if($data->status == 200) {
+                return response()->json(['Status' => '1', 'message' => 'Available ']);
+            }
+            else
+            {
+                return response()->json(['Status' => '0', 'message' => 'Not Available ']);
+            }
+        }
+        catch(Exception $e)
+        {
+            throw $e;
+        }
+
+    }
+
     public function canAbleToGetThePickupLocations(Request $request)
     {
         $order_id = $request->get('order_id');

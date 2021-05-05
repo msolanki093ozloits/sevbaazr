@@ -111,8 +111,8 @@
                                         <div class="form-group">
                                             <label for="exampleEmail" class="bmd-label-floating"> Pincode *</label>
                                             <input type="text" class="form-control" id="Firm_pincode"  name="Firm_pincode" maxlength="6" onkeyup="checkAvailaibility();">
+                                            <span id="pincode-text" style="color: red;"></span>
                                         </div>
-
                                         
 											
                                         <div class="form-group">
@@ -467,21 +467,19 @@
         console.log("123");
         var count = $('#Firm_pincode').val();
         if(count.length == 6) {
+            $("#Firm_pincode").prop("disabled", true); 
             console.log("Ajax Called");
             $.ajax({
-                url: "/api/v1/check-service-ability",
-                data:{order_id:id,_token: $('meta[name="csrf-token"]').attr('content') },
+                url: "/api/v1/check-service-ability-pickup",
+                data:{pickup_postcode:count,_token: $('meta[name="csrf-token"]').attr('content') },
                 method:'post',
                 datatype: 'json',             
                 success:function(res){
-                    if(res.success == 1){
-                        swal({
-                            title: "Success!",
-                            text: "request send successfully.",
-                            icon: "success",
-                            button: "Ok"
-                        });
-                        location.reload();
+                    if(res.Status == 1){
+                        $("#Firm_pincode").prop("disabled", false);
+                        $('#pincode-text').text("Pickup location available.")
+                    } else {
+                        $('#pincode-text').text("Pickup location not available.")
                     }
                 }
             });
